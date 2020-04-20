@@ -42,6 +42,7 @@ using ::aidl::android::system::suspend::IWakeLock;
 using ::aidl::android::system::suspend::WakeLockType;
 using ::android::base::CachedProperty;
 using ::android::base::Error;
+using ::android::base::GetProperty;
 using ::android::base::ReadFdToString;
 using ::android::base::StringPrintf;
 using ::android::base::WriteStringToFd;
@@ -254,7 +255,7 @@ bool SystemSuspend::forceSuspend() {
     //  returns from suspend, the wakelocks and SuspendCounter will not have
     //  changed.
     auto autosuspendLock = std::unique_lock(mAutosuspendLock);
-    bool success = WriteStringToFd(kSleepState, mStateFd);
+    bool success = WriteStringToFd(getSleepState(), mStateFd);
     autosuspendLock.unlock();
 
     if (!success) {
@@ -379,7 +380,7 @@ void SystemSuspend::initAutosuspendLocked() {
                     PLOG(VERBOSE) << "error writing to /sys/power/wakeup_count";
                     continue;
                 }
-                success = WriteStringToFd(kSleepState, mStateFd);
+                success = WriteStringToFd(getSleepState(), mStateFd);
                 shouldSleep = true;
 
                 autosuspendLock.unlock();
@@ -431,6 +432,25 @@ void SystemSuspend::logKernelWakeLockStats() {
         }
     }
     LOG(INFO) << klStats.rdbuf();
+}
+
+const string &SystemSuspend::getSleepState() {
+    if (mSleepState.empty()) {
+        mSleepState = GetProperty("sleep.state", "");
+        if (!mSleepState.empty()) {
+            LOG(INFO) << "autosuspend using sleep.state property " << mSleepState;
+        } else {
+            string buf = readFd(mStateFd);
+            if (buf.find(kSleepState) != std::string::npos) {
+                mSleepState = kSleepState;
+                LOG(INFO) << "autosuspend using default sleep_state " << mSleepState;
+            } else {
+                mSleepState = "freeze";
+                LOG(WARNING) << "autosuspend using fallback state " << mSleepState;
+            }
+        }
+    }
+    return mSleepState;
 }
 
 /**
