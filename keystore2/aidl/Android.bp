@@ -16,6 +16,13 @@ package {
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
+// Pre-generated Java from AIDL — zero AIDL compilation at platform build time
+filegroup {
+    name: "android.system.keystore2-V3-java-source",
+    srcs: ["aidl-gen/android.system.keystore2-V3-java-source/**/*.java"],
+    path: "aidl-gen/android.system.keystore2-V3-java-source",
+}
+
 aidl_interface {
     name: "android.system.keystore2",
     vendor_available: true,
@@ -24,7 +31,7 @@ aidl_interface {
     stability: "vintf",
     backend: {
         java: {
-            platform_apis: true,
+            enabled: false,
         },
         ndk: {
             apps_enabled: false,
@@ -33,7 +40,6 @@ aidl_interface {
             enabled: true,
             apex_available: [
                 "//apex_available:platform",
-                "com.android.compos",
             ],
         },
     },
